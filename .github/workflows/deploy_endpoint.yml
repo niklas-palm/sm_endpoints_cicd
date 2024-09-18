@@ -1,0 +1,72 @@
+name: Deploy SageMaker endpoint
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - sagemaker_endpoint/**
+      - .github/workflows/deploy_endpoint.yml
+
+env:
+  AWS_REGION: "eu-west-1"
+  STACK_NAME: "sm_endpoints_demo" # Cloudformation stack name
+  ECR_REPOSITORY: MNIST13 # Name of ECR repo to hold custom Docker image
+  OIDC_ROLE: arn:aws:iam::934765130326:role/github-actions-role # What role to assume in AWS
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+defaults:
+  run:
+    working-directory: sagemaker_endpoint/ # Set the working directory for all steps
+
+jobs:
+  DeployPipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{env.OIDC_ROLE}}
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Install yq
+        run: pip install yq
+
+      # Extract InferenceImage from config.yaml using yq and set it as an environment variable
+      - name: Extract InferenceImage from YAML config
+        id: extract-image
+        run: |
+          InferenceImage=$(yq e ".inference_image" config.yml)
+          echo "InferenceImage=$InferenceImage" >> $GITHUB_ENV
+
+      # Run Python script to fetch ModelPackageArn and exit if not found
+      - name: Fetch latest approved model package ARN
+        id: fetch-model-arn
+        run: |
+          ModelPackageArn=$(python fetch_latest_approved.py)
+          echo "ModelPackageArn=$ModelPackageArn" >> $GITHUB_ENV
+
+      - name: Build and deploy CFN
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          sam build --use-container
+          sam deploy --stack-name ${{env.STACK_NAME}} \
+            --parameter-overrides \
+              InferenceImage=${{env.InferenceImage}} \
+              ModelPackageArn=${{env.ModelPackageArn}} \
+            --resolve-s3 \
+            --region ${{env.AWS_REGION}} \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --capabilities CAPABILITY_IAM \
+            --tags project=demo
