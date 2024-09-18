@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: "eu-west-1"
-  STACK_NAME: "sm_endpoints_demo" # Cloudformation stack name
+  STACK_NAME: "sm-endpoints-demo" # Cloudformation stack name
   ECR_REPOSITORY: MNIST13 # Name of ECR repo to hold custom Docker image
   OIDC_ROLE: arn:aws:iam::934765130326:role/github-actions-role # What role to assume in AWS
 
