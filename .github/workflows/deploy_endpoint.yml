@@ -38,8 +38,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Install yq
-        run: pip install yq
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install boto3 and yq
+        run: pip install yq boto3
 
       # Extract InferenceImage from config.yaml using yq and set it as an environment variable
       - name: Extract configuration from YAML config
