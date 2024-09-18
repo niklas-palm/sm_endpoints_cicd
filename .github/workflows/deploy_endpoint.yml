@@ -41,6 +41,12 @@ jobs:
       - name: Install yq
         run: pip install yq
 
+      - name: Debug yq output
+        run: |
+          cat config.yml  # To check if the file is being read
+          yq e '.inference_image' config.yml
+          yq e '.model_package_group' config.yml
+
       # Extract InferenceImage from config.yaml using yq and set it as an environment variable
       - name: Extract configuration from YAML config
         id: extract-config
