@@ -28,8 +28,7 @@ def get_model_artifact_uri(model_package_arn):
     client = boto3.client("sagemaker")
 
     # Describe the model package to get more details, including the model artifact
-    response = client.describe_model_package(ModelPackageArn=model_package_arn)
-
+    response = client.describe_model_package(ModelPackageName=model_package_arn)
     # Extract the model artifact S3 URI
     model_artifact_uri = response["InferenceSpecification"]["Containers"][0][
         "ModelDataUrl"
