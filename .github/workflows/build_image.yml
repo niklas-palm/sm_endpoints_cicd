@@ -37,7 +37,7 @@ jobs:
           registries: "763104351884"
 
       - name: build and push image to ECR
-        working-directory: ./image_inference
+        working-directory: image_inference
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
