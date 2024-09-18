@@ -33,7 +33,7 @@ Resources:
         - InitialInstanceCount: 1
           InitialVariantWeight: 1.0
           InstanceType: !Ref EndpointInstanceType
-          ModelName: !GetAtt YoloV9Model.ModelName
+          ModelName: !GetAtt MnistModel.ModelName
           VariantName: AllTrafficVariant
 
   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html
@@ -41,7 +41,7 @@ Resources:
     Type: AWS::SageMaker::Endpoint
     Properties:
       EndpointName: !Sub "MnistEndpoint-${AWS::StackName}"
-      EndpointConfigName: !GetAtt Yolov9RealtimeEndpointConfig.EndpointConfigName
+      EndpointConfigName: !GetAtt MnistRealtimeEndpointConfig.EndpointConfigName
       DeploymentConfig:
         AutoRollbackConfiguration:
           Alarms:
