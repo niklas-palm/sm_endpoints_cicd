@@ -24,6 +24,8 @@ def get_latest_approved_model_package(model_package_group):
 
 if __name__ == "__main__":
     model_package_group = os.getenv("MODEL_PACKAGE_GROUP")
+    print("model_package_group:")
+    print(model_package_group)
     if not model_package_group:
         print("Model package group not specified.")
         sys.exit(1)
