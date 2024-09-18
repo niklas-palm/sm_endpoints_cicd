@@ -45,10 +45,10 @@ jobs:
       - name: Extract configuration from YAML config
         id: extract-config
         run: |
-          InferenceImage=$(yq e ".inference_image" config.yml)
+          InferenceImage=$(yq r ".inference_image" config.yml)
           echo "InferenceImage=$InferenceImage" >> $GITHUB_ENV
 
-          ModelPackageGroup=$(yq e ".model_package_group" config.yml)
+          ModelPackageGroup=$(yq r ".model_package_group" config.yml)
           echo "ModelPackageGroup=$ModelPackageGroup" >> $GITHUB_ENV
 
       # Run Python script to fetch ModelPackageArn and exit if not found
