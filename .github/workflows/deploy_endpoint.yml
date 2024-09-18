@@ -42,15 +42,20 @@ jobs:
         run: pip install yq
 
       # Extract InferenceImage from config.yaml using yq and set it as an environment variable
-      - name: Extract InferenceImage from YAML config
-        id: extract-image
+      - name: Extract configuration from YAML config
+        id: extract-config
         run: |
           InferenceImage=$(yq e ".inference_image" config.yml)
           echo "InferenceImage=$InferenceImage" >> $GITHUB_ENV
 
+          ModelPackageGroup=$(yq e ".model_package_group" config.yml)
+          echo "ModelPackageGroup=$ModelPackageGroup" >> $GITHUB_ENV
+
       # Run Python script to fetch ModelPackageArn and exit if not found
       - name: Fetch latest approved model package ARN
-        id: fetch-model-arn
+        id: fetch-latest-model-arn
+        env:
+          MODEL_PACKAGE_GROUP: ${{ env.ModelPackageGroup }}
         run: |
           ModelPackageArn=$(python fetch_latest_approved.py)
           echo "ModelPackageArn=$ModelPackageArn" >> $GITHUB_ENV

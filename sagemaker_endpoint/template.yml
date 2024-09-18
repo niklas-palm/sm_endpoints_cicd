@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: |
+
+Parameters:
+  InferenceImage:
+    Description: ARN of custom image to use
+    Type: String
+  ModelPackageArn:
+    Description: ARN of Model Package to use
+    Type: String
+  EndpointInstanceType:
+    Description: What instance type to use for the endpoint
+    Type: String
+    Default: ml.g5.xlarge # GPU instance
+
+Resources:
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-syntax
+  MnistModel:
+    Type: AWS::SageMaker::Model
+    Properties:
+      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
+      PrimaryContainer:
+        Image: !Ref InferenceImage
+        ModelPackageName: arn:aws:sagemaker:eu-west-1:934765130326:model-package/MNIST13-033702/2
+
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html
+  MnistRealtimeEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InitialVariantWeight: 1.0
+          InstanceType: !Ref EndpointInstanceType
+          ModelName: !GetAtt YoloV9Model.ModelName
+          VariantName: AllTrafficVariant
+
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html
+  MnistEndpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub "MnistEndpoint-${AWS::StackName}"
+      EndpointConfigName: !GetAtt Yolov9RealtimeEndpointConfig.EndpointConfigName
+      DeploymentConfig:
+        AutoRollbackConfiguration:
+          Alarms:
+            - AlarmName: !Sub "SageMakerEndpointAlarm-${AWS::StackId}" # If this goes into alarm during deployment, roll back the deployment
+        BlueGreenUpdatePolicy:
+          TerminationWaitInSeconds: 300 # How long should we keep the old endpoint live "just in case" after a successfull deployment
+          TrafficRoutingConfiguration:
+            Type: ALL_AT_ONCE
+
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudwatch-alarm.html
+  SagemakerEndpointAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Monitor errors from a SageMaker endpoint
+      AlarmName: !Sub "SageMakerEndpointAlarm-${AWS::StackId}"
+      Namespace: AWS/SageMaker
+      MetricName: InvocationModelErrors
+      Dimensions:
+        - Name: EndpointName
+          Value: !Sub "MnistEndpoint-${AWS::StackName}"
+        - Name: VariantName
+          Value: AllTrafficVariant
+      Statistic: Sum
+      Period: 30
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  # Role used by the endpoint to fetch Docker Image, read/write to S3 and Cloudwatch logs etc.
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html
+  SageMakerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: SageMakerExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sagemaker:*
+                  - s3:*
+                  - logs:*
+                  - cloudwatch:*
+                  - ecr:*
+                Resource: "*"
+
+Outputs:
+  EndpointName:
+    Value: !GetAtt MnistEndpoint.EndpointName
