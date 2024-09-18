@@ -56,14 +56,14 @@ jobs:
           ModelPackageGroup=$(yq -r ".model_package_group" config.yml)
           echo "ModelPackageGroup=$ModelPackageGroup" >> $GITHUB_ENV
 
-      # Run Python script to fetch ModelPackageArn and exit if not found
+      # Run Python script to fetch ModelArtefactURI and exit if not found
       - name: Fetch latest approved model package ARN
         id: fetch-latest-model-arn
         env:
           MODEL_PACKAGE_GROUP: ${{ env.ModelPackageGroup }}
         run: |
-          ModelPackageArn=$(python fetch_latest_approved.py)
-          echo "ModelPackageArn=$ModelPackageArn" >> $GITHUB_ENV
+          ModelArtefactURI=$(python fetch_latest_approved.py)
+          echo "ModelArtefactURI=$ModelArtefactURI" >> $GITHUB_ENV
 
       - name: Build and deploy CFN
         env:
@@ -73,7 +73,7 @@ jobs:
           sam deploy --stack-name ${{env.STACK_NAME}} \
             --parameter-overrides \
               InferenceImage=${{env.InferenceImage}} \
-              ModelPackageArn=${{env.ModelPackageArn}} \
+              ModelArtefactURI=${{env.ModelArtefactURI}} \
             --resolve-s3 \
             --region ${{env.AWS_REGION}} \
             --no-fail-on-empty-changeset \

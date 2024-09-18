@@ -2,12 +2,13 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
 Description: |
+  SageMaker endpoint with Cloudwatch alarm for rollback
 
 Parameters:
   InferenceImage:
     Description: ARN of custom image to use
     Type: String
-  ModelPackageArn:
+  ModelArtefactURI:
     Description: ARN of Model Package to use
     Type: String
   EndpointInstanceType:
@@ -23,7 +24,7 @@ Resources:
       ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
       PrimaryContainer:
         Image: !Ref InferenceImage
-        ModelPackageName: arn:aws:sagemaker:eu-west-1:934765130326:model-package/MNIST13-033702/2
+        ModelDataUrl: !Ref ModelArtefactURI
 
   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html
   MnistRealtimeEndpointConfig:
