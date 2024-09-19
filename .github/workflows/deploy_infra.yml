@@ -50,7 +50,7 @@ jobs:
           sam build --use-container
           sam deploy --stack-name ${{env.STACK_NAME}} \
             --parameter-overrides \
-              ModelPackageGroup=${{env.ModelPackageGroup}} \
+              ModelPackageGroupName=${{env.ModelPackageGroup}} \
               RepoName=${{github.event.repository.name}} \
               RepoOwner=${{github.repository_owner}} \
             --resolve-s3 \
