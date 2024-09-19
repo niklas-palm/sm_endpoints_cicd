@@ -21,7 +21,7 @@ defaults:
     working-directory: infra/ # Set the working directory for all steps
 
 jobs:
-  DeployPipeline:
+  DeployInfra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo

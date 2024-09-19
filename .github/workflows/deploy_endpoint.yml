@@ -23,7 +23,7 @@ defaults:
     working-directory: sagemaker_endpoint/ # Set the working directory for all steps
 
 jobs:
-  DeployPipeline:
+  DeployEndpoint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
