@@ -1,0 +1,61 @@
+name: Deploy SageMaker endpoint
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - infra/**
+      - .github/workflows/deploy_infra.yml
+
+env:
+  AWS_REGION: "eu-west-1"
+  STACK_NAME: "sm-endpoints-infra-demo" # Cloudformation stack name
+  OIDC_ROLE: arn:aws:iam::934765130326:role/github-actions-role # What role to assume in AWS
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+defaults:
+  run:
+    working-directory: infra/ # Set the working directory for all steps
+
+jobs:
+  DeployPipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{env.OIDC_ROLE}}
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: Install yq
+        run: pip install yq
+
+      # Extract InferenceImage from config.yaml using yq and set it as an environment variable
+      - name: Extract configuration from YAML config
+        id: extract-config
+        run: |
+          ModelPackageGroup=$(yq -r ".model_package_group" config.yml)
+          echo "ModelPackageGroup=$ModelPackageGroup" >> $GITHUB_ENV
+
+      - name: Build and deploy CFN
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          sam build --use-container
+          sam deploy --stack-name ${{env.STACK_NAME}} \
+            --parameter-overrides \
+              ModelPackageGroup=${{env.ModelPackageGroup}} \
+              RepoName=${{github.event.repository.name}} \
+              RepoOwner=${{github.repository_owner}} \
+            --resolve-s3 \
+            --region ${{env.AWS_REGION}} \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --capabilities CAPABILITY_IAM \
+            --tags project=demo
