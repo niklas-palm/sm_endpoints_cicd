@@ -15,87 +15,88 @@ Parameters:
   RepoBranch:
     Type: String
     Description: Github Repository branch
-    default: main
+    Default: main
 
   WorkflowName:
     Type: String
     Description: Name of Github workflow file to trigger on registry events
-    default: deploy_endpoint.yml
+    Default: deploy_endpoint.yml
 
   ModelPackageGroupName:
     Type: String
     Description: Name of the SM Model Registry to connect
 
-MyFunctionLogGroup: #To ensure Logs are deleted after a while.
-  Type: AWS::Logs::LogGroup
-  Properties:
-    LogGroupName: !Sub "/aws/lambda/${StartDeploymentLambda}"
-    RetentionInDays: 7
+Resources:
+  MyFunctionLogGroup: #To ensure Logs are deleted after a while.
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${StartDeploymentLambda}"
+      RetentionInDays: 7
 
-StartDeploymentLambda:
-  Type: "AWS::Serverless::Function"
-  Properties:
-    Handler: index.lambda_handler
-    Runtime: python3.9
-    Description: A Lambda function to trigger a GitHub Actions workflow
-    Environment:
-      Variables:
-        repository_owner: !Ref RepoOwner
-        repository_name: !Ref RepoName
-        workflow_name: !Ref WorkflowName
-        branch: !Ref RepoBranch
-        token: "{{resolve:secretsmanager:github-access-token:SecretString}}"
-    Events:
-      ModelApprovedOrRejected:
-        Type: EventBridgeRule
-        Properties:
-          Pattern:
-            source:
-              - "aws.sagemaker"
-            detail-type:
-              - "SageMaker Model Package State Change"
-            detail:
-              ModelPackageGroupName:
-                - !Ref ModelPackageGroupName
-              ModelApprovalStatus:
-                - anything-but:
-                    - PendingManualApproval
-    InlineCode: |
-      import http.client
-      import json
-      import os
+  StartDeploymentLambda:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Description: A Lambda function to trigger a GitHub Actions workflow
+      Environment:
+        Variables:
+          repository_owner: !Ref RepoOwner
+          repository_name: !Ref RepoName
+          workflow_name: !Ref WorkflowName
+          branch: !Ref RepoBranch
+          token: "{{resolve:secretsmanager:github-access-token:SecretString}}"
+      Events:
+        ModelApprovedOrRejected:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - "aws.sagemaker"
+              detail-type:
+                - "SageMaker Model Package State Change"
+              detail:
+                ModelPackageGroupName:
+                  - !Ref ModelPackageGroupName
+                ModelApprovalStatus:
+                  - anything-but:
+                      - PendingManualApproval
+      InlineCode: |
+        import http.client
+        import json
+        import os
 
-      repository_owner = os.environ['repository_owner']
-      repository_name = os.environ['repository_name']
-      workflow_name = os.environ['workflow_name']
-      token = os.environ['token']
-      branch = os.environ['branch']
+        repository_owner = os.environ['repository_owner']
+        repository_name = os.environ['repository_name']
+        workflow_name = os.environ['workflow_name']
+        token = os.environ['token']
+        branch = os.environ['branch']
 
-      api_url = f"/repos/{repository_owner}/{repository_name}/actions/workflows/{workflow_name}/dispatches"
-      payload = {
-          "ref": branch,
-      }
-      headers = {
-          "Accept": "application/vnd.github.v3+json",
-          "Authorization": f"token {token}",
-          "Content-Type": "application/json",
-          "User-Agent": "MyGitHubWorkflowTrigger/1.0"
-      }
+        api_url = f"/repos/{repository_owner}/{repository_name}/actions/workflows/{workflow_name}/dispatches"
+        payload = {
+            "ref": branch,
+        }
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "Authorization": f"token {token}",
+            "Content-Type": "application/json",
+            "User-Agent": "MyGitHubWorkflowTrigger/1.0"
+        }
 
-      def lambda_handler(event, context):
+        def lambda_handler(event, context):
 
-        connection = http.client.HTTPSConnection("api.github.com")
+          connection = http.client.HTTPSConnection("api.github.com")
 
-        try:
-            connection.request("POST", api_url, json.dumps(payload), headers=headers)
-            response = connection.getresponse()
+          try:
+              connection.request("POST", api_url, json.dumps(payload), headers=headers)
+              response = connection.getresponse()
 
-            if response.status == 204:
-                print("Workflow triggered successfully!")
-            else:
-                print(f"Failed to trigger the workflow. Status code: {response.status}")
-                print(response.read())
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            connection.close()
+              if response.status == 204:
+                  print("Workflow triggered successfully!")
+              else:
+                  print(f"Failed to trigger the workflow. Status code: {response.status}")
+                  print(response.read())
+          except Exception as e:
+              print(f"An error occurred: {e}")
+          finally:
+              connection.close()
