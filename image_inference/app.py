@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 
 from flask import Flask, request, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix

@@ -9,7 +9,6 @@ on:
 
 env:
   AWS_REGION: "eu-west-1" # Select this to suit where you'd like to deploy your workload
-  ECR_REPOSITORY: mnist_inf # Name of ECR repo to hold custom Docker image
   OIDC_ROLE: arn:aws:iam::934765130326:role/github-actions-role # What role to assume in AWS
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -36,11 +35,20 @@ jobs:
         with:
           registries: "763104351884"
 
+      - name: Install yq
+        run: pip install yq
+
+        # Extract InferenceImage from config.yaml using yq and set it as an environment variable
+      - name: Extract configuration from YAML config
+        id: extract-config
+        run: |
+          ECR_REPOSITORY=$(yq -r ".ecr_repo" config.yml)
+          echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> $GITHUB_ENV
+
       - name: build and push image to ECR
         working-directory: image_inference
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
