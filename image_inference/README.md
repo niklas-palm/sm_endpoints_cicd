@@ -1,20 +1,13 @@
-## Connect Model registry with Github Actions
+## Docker Image for inference with SageMaker endpoints
 
-Sets up a Lambda function that's invoked whenever the specified model registry is updated. Tha Lambda function uses the Github API to start the deployment workflow for the endpoint
+Creates an inference image for SageMaker Endpoints.
 
 ### Requirements
 
-Github access token added to SSM, referenced in the cloudformation template and injected as en environment variable into the Lambda function
-
-```yaml
-Environment:
-    Variables:
-        token: "{{resolve:secretsmanager:github-access-token:SecretString}}"
-        ...
-```
-
-To create the secret, either use the AWS Console or the AWS cli:
+An ECR repository created.
 
 ```bash
-aws secretsmanager create-secret --name github-access-token --secret-string 'ACCESS_TOKEN_GOES_HERE'
+aws ecr create-repository --repository-name <REPO_NAME_GOES_HERE>
 ```
+
+Add repository name to the config file.
