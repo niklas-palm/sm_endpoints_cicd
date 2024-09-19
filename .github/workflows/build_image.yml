@@ -10,9 +10,15 @@ on:
 env:
   AWS_REGION: "eu-west-1" # Select this to suit where you'd like to deploy your workload
   OIDC_ROLE: arn:aws:iam::934765130326:role/github-actions-role # What role to assume in AWS
+
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: read # This is required for actions/checkout
+
+defaults:
+  run:
+    working-directory: image_inference/ # Set the working directory for all steps
+
 jobs:
   BuildInferenceImage:
     runs-on: ubuntu-latest
@@ -46,7 +52,6 @@ jobs:
           echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> $GITHUB_ENV
 
       - name: build and push image to ECR
-        working-directory: image_inference
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
